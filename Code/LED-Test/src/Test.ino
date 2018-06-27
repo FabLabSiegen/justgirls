@@ -12,29 +12,37 @@
 // the Arduino's 5V pin.  DON'T try that with other code!
 
 #include <EEPROM.h>
-#include <Adafruit_DotStar.h>
-// Because conditional #includes don't work w/Arduino sketches...
-#include <SPI.h>         // COMMENT OUT THIS LINE FOR GEMMA OR TRINKET
-//#include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
+
+#include <Adafruit_NeoPixel.h>
+#ifdef __AVR__
+  #include <avr/power.h>
+#endif
+
+//
+// // Because conditional #includes don't work w/Arduino sketches...
+// #include <SPI.h>         // COMMENT OUT THIS LINE FOR GEMMA OR TRINKET
+// //#include <avr/power.h> // ENABLE THIS LINE FOR GEMMA OR TRINKET
 
 #define MAX(x,y) ((x) >= (y) ? (x) : (y))
 #define MIN(x,y) ((x) <= (y) ? (x) : (y))
 
-#define NUM_PIXELS 150 // Number of LEDs in strip
+#define NUM_PIXELS 100 // Number of LEDs in strip
 
-#define NUM_MODES 2
-#define NUM_RINGS 6
+#define NUM_MODES 1
+#define NUM_RINGS 1
 #define RING_RESOLUTION 1
-#define RING_WIDTH 5
+#define RING_WIDTH 10
 
 // Here's how to control the LEDs from any two pins:
-#define DATAPIN    2
+#define DATAPIN    6
 #define CLOCKPIN   3
 
 static uint8_t glut[256];
 
-Adafruit_DotStar pixels = Adafruit_DotStar(
-  NUM_PIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BGR);
+
+Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, DATAPIN, NEO_GRB + NEO_KHZ800);
+// Adafruit_DotStar pixels = Adafruit_DotStar(
+//   NUM_PIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BGR);
 // The last parameter is optional -- this is the color data order of the
 // DotStar strip, which has changed over time in different production runs.
 // Your code just uses R,G,B colors, the library then reassigns as needed.
@@ -49,7 +57,7 @@ setup()
 {
   uint16_t i;
   float rf;
-  
+
 #if defined(__AVR_ATtiny85__) && (F_CPU == 16000000L)
   clock_prescale_set(clock_div_1); // Enable 16 MHz on Trinket
 #endif
@@ -85,26 +93,26 @@ render_rings (const uint16_t t)
       if (speeds[i] == 0 && random (10) == 0)
         {
           uint8_t basecolor;
-          
+
           if (random (2) == 0)
             {
               positions[i] = 0;
-              speeds[i] = random (3);            
+              speeds[i] = random (3);
             }
           else
             {
               positions[i] = NUM_PIXELS + 2 * RING_WIDTH - 1;
-              speeds[i] = - random (3);            
+              speeds[i] = - random (3);
             }
 
           basecolor = random (3);
-          
+
           colors[i*3 + (basecolor + 0) % 3] = random (256);
           colors[i*3 + (basecolor + 1) % 3] = random (256);
           colors[i*3 + (basecolor + 2) % 3] = random (32);
         }
     }
-    
+
   for (i = RING_WIDTH; i < NUM_PIXELS + RING_WIDTH; i++)
     {
       col[0] = col[1] = col[2] = 0;
@@ -113,12 +121,12 @@ render_rings (const uint16_t t)
         {
           if (speeds[j] == 0)
             continue;
-            
+
           col[0] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < RING_WIDTH ? col[0] + colors[j*3+0] : col[0]);
           col[1] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < RING_WIDTH ? col[1] + colors[j*3+1] : col[1]);
           col[2] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < RING_WIDTH ? col[2] + colors[j*3+2] : col[2]);
         }
-        
+
       pixels.setPixelColor (i - RING_WIDTH, glut[col[0]], glut[col[1]], glut[col[2]]);
     }
 }
@@ -150,9 +158,7 @@ render_redwhitegreen (const uint16_t t)
 void
 loop()
 {
-  uint16_t i;
   static uint16_t t = 0xffff;
-  static uint8_t pressed = 0;
   static uint8_t state = 0xff;
 
   if (state >= NUM_MODES)
@@ -164,12 +170,12 @@ loop()
     {
       case 0:
         render_rings (t);
-        delay (15);
+        delay (50);
         break;
       case 1:
       default:
         render_redwhitegreen (t);
-        delay (15);
+        delay (50);
         break;
 
     }
@@ -180,3 +186,4 @@ loop()
   // update Pixels
   pixels.show ();
 }
+
