@@ -11,6 +11,7 @@
 // and color of LEDs, it's reasonably safe to power a couple meters off
 // the Arduino's 5V pin.  DON'T try that with other code!
 
+
 #include <EEPROM.h>
 
 #include <Adafruit_NeoPixel.h>
@@ -26,16 +27,14 @@
 #define MAX(x,y) ((x) >= (y) ? (x) : (y))
 #define MIN(x,y) ((x) <= (y) ? (x) : (y))
 
-#define NUM_PIXELS 100 // Number of LEDs in strip
+#define NUM_PIXELS 30 // Number of LEDs in strip
 
 #define NUM_MODES 1
-#define NUM_RINGS 1
-#define RING_RESOLUTION 1
-#define RING_WIDTH 10
+#define NUM_RINGS 3
+#define RING_WIDTH 5
 
 // Here's how to control the LEDs from any two pins:
 #define DATAPIN    6
-#define CLOCKPIN   3
 
 static uint8_t glut[256];
 
