@@ -12,7 +12,7 @@
 // the Arduino's 5V pin.  DON'T try that with other code!
 
 
-#include <EEPROM.h>
+// #include <EEPROM.h>
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
@@ -27,19 +27,20 @@
 #define MAX(x,y) ((x) >= (y) ? (x) : (y))
 #define MIN(x,y) ((x) <= (y) ? (x) : (y))
 
-#define NUM_PIXELS 30 // Number of LEDs in strip
+#define NUM_PIXELS 60 // Number of LEDs in strip
 
 #define NUM_MODES 1
-#define NUM_RINGS 3
-#define RING_WIDTH 5
+#define NUM_STRIPES 4
+#define STRIPE_WIDTH 14
 
 // Here's how to control the LEDs from any two pins:
 #define DATAPIN    6
-
+#define BUTTONPIN 4
 static uint8_t glut[256];
-
+int buttonState;
 
 Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, DATAPIN, NEO_GRB + NEO_KHZ800);
+
 // Adafruit_DotStar pixels = Adafruit_DotStar(
 //   NUM_PIXELS, DATAPIN, CLOCKPIN, DOTSTAR_BGR);
 // The last parameter is optional -- this is the color data order of the
@@ -51,8 +52,7 @@ Adafruit_NeoPixel pixels = Adafruit_NeoPixel(NUM_PIXELS, DATAPIN, NEO_GRB + NEO_
 // (Arduino Uno = pin 11 for data, 13 for clock, other boards are different).
 //Adafruit_DotStar strip = Adafruit_DotStar(NUMPIXELS, DOTSTAR_BRG);
 
-void
-setup()
+void setup()
 {
   uint16_t i;
   float rf;
@@ -71,112 +71,89 @@ setup()
 
   pixels.begin (); // Initialize pins for output
   pixels.show ();  // Turn all LEDs off ASAP
+
+  pinMode(BUTTONPIN, INPUT);
+
 }
 
 
-void
-render_rings (const uint16_t t)
+void render_rings (const uint16_t t)
 {
-  static uint16_t positions[NUM_RINGS];
-  static uint8_t colors[NUM_RINGS * 3];
-  static int8_t speeds[NUM_RINGS];
-  uint8_t i, j, col[3];
+  static uint16_t positions[NUM_STRIPES];
+  static uint8_t colors[NUM_STRIPES * 3];
+  static int8_t speeds[NUM_STRIPES];
+  uint8_t currentStripe, j, col[3];
 
-  for (i = 0; i < NUM_RINGS; i++)
+  for (currentStripe = 0; currentStripe < NUM_STRIPES; currentStripe++)
     {
-      if (speeds[i] != 0)
-        positions[i] += speeds[i];
-      if (positions[i] < 0 || positions[i] >= NUM_PIXELS + 2 * RING_WIDTH)
-        speeds[i] = 0;
 
-      if (speeds[i] == 0 && random (10) == 0)
+      if (speeds[currentStripe] != 0){
+        //move stripe, depending on the speed
+        positions[currentStripe] += speeds[i];
+      }
+      if (positions[currentStripe] < 0 || positions[currentStripe] >= NUM_PIXELS + 2 * STRIPE_WIDTH){
+        //stripe is out of range, so stop it
+        speeds[currentStripe] = 0;
+      }
+
+      //this stripe ended, so create a new one or not
+      if (speeds[currentStripe] == 0 && random (10) == 0)
         {
+          //create new stripe
           uint8_t basecolor;
-
+          //in which direction should the stripe be animated?
           if (random (2) == 0)
             {
-              positions[i] = 0;
-              speeds[i] = random (3);
+              //forward
+              positions[currentStripe] = 0;
+              speeds[currentStripe] = random(2);//random (1);
             }
           else
             {
-              positions[i] = NUM_PIXELS + 2 * RING_WIDTH - 1;
-              speeds[i] = - random (3);
+              //backwards
+              positions[currentStripe] = NUM_PIXELS + 2 * STRIPE_WIDTH - 1;
+              speeds[currentStripe] = -random(2); //random (3);
             }
 
+          //decide which basecolor, red, green or blue
           basecolor = random (3);
 
-          colors[i*3 + (basecolor + 0) % 3] = random (256);
-          colors[i*3 + (basecolor + 1) % 3] = random (256);
-          colors[i*3 + (basecolor + 2) % 3] = random (32);
+          colors[currentStripe*3 + (basecolor + 0) % 3] = random (150);
+          colors[currentStripe*3 + (basecolor + 1) % 3] = random (150);
+          colors[currentStripe*3 + (basecolor + 2) % 3] = random (15);
         }
     }
 
-  for (i = RING_WIDTH; i < NUM_PIXELS + RING_WIDTH; i++)
+  for (i = STRIPE_WIDTH; i < NUM_PIXELS + STRIPE_WIDTH; i++)
     {
       col[0] = col[1] = col[2] = 0;
 
-      for (j = 0; j < NUM_RINGS; j++)
+      for (currentStripe = 0; currentStripe < NUM_STRIPES; currentStripe++)
         {
-          if (speeds[j] == 0)
+          if (speeds[currentStripe] == 0)
             continue;
 
-          col[0] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < RING_WIDTH ? col[0] + colors[j*3+0] : col[0]);
-          col[1] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < RING_WIDTH ? col[1] + colors[j*3+1] : col[1]);
-          col[2] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < RING_WIDTH ? col[2] + colors[j*3+2] : col[2]);
+          col[0] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < STRIPE_WIDTH ? col[0] + colors[currentStripe*3+0] : col[0]);
+          col[1] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < STRIPE_WIDTH ? col[1] + colors[currentStripe*3+1] : col[1]);
+          col[2] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < STRIPE_WIDTH ? col[2] + colors[currentStripe*3+2] : col[2]);
         }
 
-      pixels.setPixelColor (i - RING_WIDTH, glut[col[0]], glut[col[1]], glut[col[2]]);
+      pixels.setPixelColor (i - STRIPE_WIDTH, glut[col[0]], glut[col[1]], glut[col[2]]);
     }
 }
 
-void
-render_redwhitegreen (const uint16_t t)
+void loop()
 {
-  uint16_t i;
-  uint8_t pos;
+    static uint16_t t = 0xffff;
 
-  for (i = 0; i < NUM_PIXELS; i++)
-    {
-      pos = (t + i) % 149;
-      if (pos < 51)
-        pixels.setPixelColor (i, 0, glut[pos * 5], 0);
-      else if (pos < 66)
-        pixels.setPixelColor (i, glut[(pos - 51) * 17], 255, glut[(pos - 51) * 17]);
-      else if (pos < 81)
-        pixels.setPixelColor (i, 255, glut[255 - (pos - 66) * 17], glut[255 - (pos - 66) * 17]);
-      else if (pos < 132)
-        pixels.setPixelColor (i, glut[255 - (pos - 81) * 5], 0, 0);
-      else
-        pixels.setPixelColor (i, 0, 0, 0);
+
+    buttonState = digitalRead(BUTTONPIN);
+    if (buttonState == HIGH) {
+
     }
-}
-
-
-
-void
-loop()
-{
-  static uint16_t t = 0xffff;
-  static uint8_t state = 0xff;
-
-  if (state >= NUM_MODES)
-    state = EEPROM.read(0);
-  if (state >= NUM_MODES)
-    state = 0;
-
-  switch (state)
-    {
-      case 0:
-        render_rings (t);
-        delay (50);
-        break;
-      case 1:
-      default:
-        render_redwhitegreen (t);
-        delay (50);
-        break;
-
+    else {
+      render_rings (t);
+      delay (40);
     }
 
   // Time-Tick. Needed for moving stripes
