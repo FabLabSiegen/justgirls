@@ -12,7 +12,7 @@
 // the Arduino's 5V pin.  DON'T try that with other code!
 
 
-// #include <EEPROM.h>
+ #include <EEPROM.h>
 
 #include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
@@ -82,14 +82,14 @@ void render_rings (const uint16_t t)
   static uint16_t positions[NUM_STRIPES];
   static uint8_t colors[NUM_STRIPES * 3];
   static int8_t speeds[NUM_STRIPES];
-  uint8_t currentStripe, i, j, col[3];
+  uint8_t currentStripe, i, col[3];
 
   for (currentStripe = 0; currentStripe < NUM_STRIPES; currentStripe++)
     {
 
       if (speeds[currentStripe] != 0){
         //move stripe, depending on the speed
-        positions[currentStripe] += speeds[i];
+        positions[currentStripe] += speeds[currentStripe];
       }
       if (positions[currentStripe] < 0 || positions[currentStripe] >= NUM_PIXELS + 2 * STRIPE_WIDTH){
         //stripe is out of range, so stop it
@@ -133,9 +133,9 @@ void render_rings (const uint16_t t)
           if (speeds[currentStripe] == 0)
             continue;
 
-          col[0] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < STRIPE_WIDTH ? col[0] + colors[currentStripe*3+0] : col[0]);
-          col[1] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < STRIPE_WIDTH ? col[1] + colors[currentStripe*3+1] : col[1]);
-          col[2] = MIN (255, MAX (i, positions[j]) - MIN (i, positions[j]) < STRIPE_WIDTH ? col[2] + colors[currentStripe*3+2] : col[2]);
+          col[0] = MIN (255, MAX (i, positions[currentStripe]) - MIN (i, positions[currentStripe]) < STRIPE_WIDTH ? col[0] + colors[currentStripe*3+0] : col[0]);
+          col[1] = MIN (255, MAX (i, positions[currentStripe]) - MIN (i, positions[currentStripe]) < STRIPE_WIDTH ? col[1] + colors[currentStripe*3+1] : col[1]);
+          col[2] = MIN (255, MAX (i, positions[currentStripe]) - MIN (i, positions[currentStripe]) < STRIPE_WIDTH ? col[2] + colors[currentStripe*3+2] : col[2]);
         }
 
       pixels.setPixelColor (i - STRIPE_WIDTH, glut[col[0]], glut[col[1]], glut[col[2]]);
@@ -144,16 +144,26 @@ void render_rings (const uint16_t t)
 
 void loop()
 {
-    static uint16_t t = 0xffff;
+  static uint16_t t = 0xffff;
+  static uint8_t state = 0xff;
 
+  if (state >= NUM_MODES)
+    state = EEPROM.read(0);
+  if (state >= NUM_MODES)
+    state = 0;
 
-    buttonState = digitalRead(BUTTONPIN);
-    if (buttonState == HIGH) {
+  switch (state)
+    {
+      case 0:
+        render_rings (t);
+        delay (40);
+        break;
+      case 1:
+      default:
 
-    }
-    else {
-      render_rings (t);
-      delay (40);
+        delay (50);
+        break;
+
     }
 
   // Time-Tick. Needed for moving stripes
