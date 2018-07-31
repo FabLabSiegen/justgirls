@@ -82,7 +82,7 @@ void render_rings (const uint16_t t)
   static uint16_t positions[NUM_STRIPES];
   static uint8_t colors[NUM_STRIPES * 3];
   static int8_t speeds[NUM_STRIPES];
-  uint8_t currentStripe, j, col[3];
+  uint8_t currentStripe, i, j, col[3];
 
   for (currentStripe = 0; currentStripe < NUM_STRIPES; currentStripe++)
     {
