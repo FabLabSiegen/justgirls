@@ -164,7 +164,7 @@ render_kitt (const uint16_t t)
 
   for (i = 0; i < NUM_PIXELS * 3; i++)
     {
-      pixels.pixels[i] = (((int) pixels.pixels[i]) * 7) / 8;
+      pixels.setPixelColor(i, (((int) pixels.getPixelColor(i)) * 7) / 8);
     }
 
   if (pos >= NUM_PIXELS)
